@@ -1,0 +1,25 @@
+{
+  "name": "ethwallet",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hyun-Geol/ethwallet.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Hyun-Geol/ethwallet/issues"
+  },
+  "homepage": "https://github.com/Hyun-Geol/ethwallet#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "fs": "0.0.1-security",
+    "web3": "^1.2.1"
+  }
+}
