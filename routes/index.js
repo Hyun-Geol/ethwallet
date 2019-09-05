@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-var template = require('../public/lib/template.js');
+var template = require('../views/template.js');
 
 router.get('/', function(req, res){
     var html = template.HTML(

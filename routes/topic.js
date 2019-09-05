@@ -35,36 +35,54 @@ router.get('/create', function (req, res) {
 
 router.post('/create_process', function (req, res) {
     var {id, password} = req.body;
-    var newaccounts = web3.eth.accounts.create(web3.utils.randomHex(32), function (err) {
-    
-    });
+
+    var accountPassword = web3.utils.randomHex(32)
+    var newaccounts = web3.eth.accounts.create(accountPassword)
+
     console.log(newaccounts.privateKey);
-    db.query(`insert into wallet_info(id, password, public_key, private_key) values(?, ?, ?, ?)`,
-        [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
-            res.redirect('/')
+    db.query(
+        `insert into wallet_info(id, password, public_key, private_key) values(?, ?, ?, ?)`,
+        [id, password, newaccounts.address, newaccounts.privateKey], 
+        function (err, result) {
+            if (err) {
+                return res.redirect('/topic/fail')
+            }
+            return res.redirect('/')
         });
 });
 
 router.post('/login_process', function (req, res) {
     var {id, password} = req.body;
-    db.query(`select num, id, password from wallet_info`, function (err, result){
+    db.query(`SELECT password FROM wallet_info WHERE id = ?`, [id], function (err, userInfo){
+        if (err) {
+            return res.redirect('/topic/fail')
+        }
         
-        for (var i = 0; i < result.length; i++) {
-            if (result[i].num != undefined) {
-                if (id == result[i].id && password == result[i].password) {
-                    console.log('로그인 성공')
-                    res.redirect('/topic/main')
-                /*} else {
-                  // res.send("올바른 아이디/비밀번호를 입력해주세요.")*/
-                }
+        if (!userInfo.length) {
+            // 로그인 실패(id 없음)
+            return res.redirect('/topic/permission')
+        }
+
+        else {
+            if( userInfo[0].password == password) {
+                return res.redirect('/topic/main')
             } else {
-                
+                // 로그인 실패(패스워드 틀림)
+                return res.redirect('/topic/fail')
             }
-            console.log('올바른 아이디/비밀번호를 입력해주세요.')
-        };     
+        }
     });
 });
 
+router.get('/fail', function (req, res) {
+    var html = template.FAIL
+    return res.send(html);
+});
+
+router.get('/permission', function (req, res) {
+    var html = template.PERMISSION
+    return res.send(html);
+});
 
 router.get('/main', function (req, res) {
     var html = template.HTML(
