@@ -1,42 +1,76 @@
 var express = require('express');
+var app = express();
 var router = express.Router();
 var template = require('../public/lib/template.js');
 var Web3 = require('web3');
-var web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'));
+var web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1'));
+var mysql = require('mysql');
+var bodyParser = require('body-parser');
 
 
-router.get('/create', function(req, res){
+var db = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: '111111',
+    database: 'wallet'
+});
+db.connect();
+
+router.use(bodyParser.urlencoded({ extended: false }));
+
+
+
+router.get('/create', function (req, res) {
     var html = template.HTML(
         `
         <form action="/topic/create_process" method="post">
             <h4 class="display-4">Create wallet</h4><br/>
             <div class = "form-group">
-                <label for="id">id</label>
-                <input type="text" class="form-control" id="exampleInputPassword1" placeholder="id를 입력하세요"><br/>
-                <label for="password">password</label>
-                <input type="password" class="form-control" id="exampleInputPassword1" placeholder="password를 입력하세요"><br/>
+                <label for="id1">id</label>
+                <input type="text" class="form-control" name= "id" id="id" placeholder="id를 입력하세요"><br/>
+                <label for="password1">password</label>
+                <input type="password" class="form-control" name= "password" id="password" placeholder="password를 입력하세요"><br/>
             </div>
             <button type="submit" class="btn btn-outline-info">생성</button>
             <button type="button" class="btn btn-outline-dark" onclick="location.href='/'">취소</button>
         </form>`
     );
-            
     res.send(html);
+});
 
+router.post('/create_process', function (req, res) {
+    var post = req.body;
+    var newaccounts = web3.eth.accounts.create(web3.utils.randomHex(32), function (err) {
+    });
+    console.log(newaccounts.privateKey);
+    db.query(`insert into wallet_info(id, password, public_key, private_key) values(?, ?, ?, ?)`,
+        [post.id, post.password, newaccounts.address, newaccounts.privateKey], function (error, result) {
+            res.redirect('/')
+        });
+});
+
+router.post('/login_process', function (req, res) {
+    var post = req.body;
+    db.query(`select num, id, password from wallet_info`, function (err, result){
+        
+        for (var i = 0; i < result.length; i++) {
+            if (result[i].num != undefined) {
+                if (post.id == result[i].id && post.password == result[i].password) {
+                    console.log('로그인 성공')
+                    res.redirect('/topic/main')
+                /*} else {
+                  // res.send("올바른 아이디/비밀번호를 입력해주세요.")*/
+                }
+            } else {
+                
+            }
+            console.log('올바른 아이디/비밀번호를 입력해주세요.')
+        };     
+    });
 });
 
 
-
-
-router.post('/create_process', function(req, res){
-    web3.eth.accounts.create(web3.utils.randomHex(32), function(err, address, privatekey){
-        console.log(address, "으으", privatekey)
-    });
-    res.send('hi');
-});     
-
-
-router.post('/main', function(req, res){
+router.get('/main', function (req, res) {
     var html = template.HTML(
         `
         <script type="text/javascript" src="/public/js/bootstrap.js"></script>
@@ -95,18 +129,18 @@ router.post('/main', function(req, res){
     res.send(html);
 });
 
-
-router.get('/send', function(req, res){
+router.get('/send', function (req, res) {
     var html = template.HTML(
         `
         <script type="text/javascript" src="/public/js/bootstrap.js"></script>
         <div class="dropdown">
+    
             <div
                 class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Wallet Info</h1>
             </div>
     
-            <form>
+            <form action="/" method="post">
                 <div class="form-group">
                     <label for="privatekey">To</label>
                     <input type="password" class="form-control" id="exampleInputPassword1"
@@ -124,15 +158,17 @@ router.get('/send', function(req, res){
                     <input type="password" class="form-control" id="exampleInputPassword1"
                         placeholder="전송량"><br />
                 </div>
-                <button type="button" class="btn btn-outline-dark">전송</button>
+                <button type="submit" class="btn btn-outline-dark">전송</button>
+                <button type="button" class="btn btn-outline-dark" onclick="location.href='/topic/main'">취소</button>
             </form>
         </div>
         `
     );
-            
+
     res.send(html);
 
 });
+
 
 
 
