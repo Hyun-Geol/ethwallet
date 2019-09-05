@@ -41,7 +41,7 @@ router.post('/create_process', function (req, res) {
 
     console.log(newaccounts.privateKey);
     db.query(
-        `insert into wallet_info(id, password, public_key, private_key) values(?, ?, ?, ?)`,
+        `INSERT INTO wallet_info(id, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
         [id, password, newaccounts.address, newaccounts.privateKey], 
         function (err, result) {
             if (err) {
@@ -57,7 +57,7 @@ router.post('/login_process', function (req, res) {
         if (err) {
             return res.redirect('/topic/fail')
         }
-        
+
         if (!userInfo.length) {
             // 로그인 실패(id 없음)
             return res.redirect('/topic/permission')
@@ -68,7 +68,7 @@ router.post('/login_process', function (req, res) {
                 return res.redirect('/topic/main')
             } else {
                 // 로그인 실패(패스워드 틀림)
-                return res.redirect('/topic/fail')
+                return res.redirect('/topic/permission')
             }
         }
     });
