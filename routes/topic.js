@@ -1,12 +1,10 @@
 var express = require('express');
 var app = express();
 var router = express.Router();
-var template = require('../public/lib/template.js');
+var template = require('../views/template.js/index.js');
 var Web3 = require('web3');
 var web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1'));
 var mysql = require('mysql');
-var bodyParser = require('body-parser');
-
 
 var db = mysql.createConnection({
     host: 'localhost',
@@ -15,9 +13,6 @@ var db = mysql.createConnection({
     database: 'wallet'
 });
 db.connect();
-
-router.use(bodyParser.urlencoded({ extended: false }));
-
 
 
 router.get('/create', function (req, res) {
@@ -39,23 +34,24 @@ router.get('/create', function (req, res) {
 });
 
 router.post('/create_process', function (req, res) {
-    var post = req.body;
+    var {id, password} = req.body;
     var newaccounts = web3.eth.accounts.create(web3.utils.randomHex(32), function (err) {
+    
     });
     console.log(newaccounts.privateKey);
     db.query(`insert into wallet_info(id, password, public_key, private_key) values(?, ?, ?, ?)`,
-        [post.id, post.password, newaccounts.address, newaccounts.privateKey], function (error, result) {
+        [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
             res.redirect('/')
         });
 });
 
 router.post('/login_process', function (req, res) {
-    var post = req.body;
+    var {id, password} = req.body;
     db.query(`select num, id, password from wallet_info`, function (err, result){
         
         for (var i = 0; i < result.length; i++) {
             if (result[i].num != undefined) {
-                if (post.id == result[i].id && post.password == result[i].password) {
+                if (id == result[i].id && password == result[i].password) {
                     console.log('로그인 성공')
                     res.redirect('/topic/main')
                 /*} else {
@@ -126,7 +122,7 @@ router.get('/main', function (req, res) {
     </body>
     `
     );
-    res.send(html);
+    return res.send(html);
 });
 
 router.get('/send', function (req, res) {
@@ -165,7 +161,7 @@ router.get('/send', function (req, res) {
         `
     );
 
-    res.send(html);
+    return res.send(html);
 
 });
 
