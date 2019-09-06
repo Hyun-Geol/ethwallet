@@ -3,10 +3,13 @@ var app = express();
 var router = express.Router();
 var template = require('../public/lib/template.js');
 var Web3 = require('web3');
-var web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1'));
+var web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'));
 var mysql = require('mysql');
 var bodyParser = require('body-parser');
+var session = require('express-session');
+var mysqlstore = require('express-mysql-session')(session);
 
+router.use(bodyParser.urlencoded({ extended: false }));
 
 var db = mysql.createConnection({
     host: 'localhost',
@@ -14,11 +17,19 @@ var db = mysql.createConnection({
     password: '111111',
     database: 'wallet'
 });
-db.connect();
+//db.connect();
 
-router.use(bodyParser.urlencoded({ extended: false }));
-
-
+router.use(session({
+    secret: '12sdfwerwersdfserwerwef', //keboard cat (랜덤한 값)
+    resave: false,
+    saveUninitialized: true,
+    store: new mysqlstore({
+        host: 'localhost',
+        user: 'root',
+        password: '111111',
+        database: 'wallet'
+    })
+}))
 
 router.get('/create', function (req, res) {
     var html = template.HTML(
@@ -39,38 +50,62 @@ router.get('/create', function (req, res) {
 });
 
 router.post('/create_process', function (req, res) {
-    var post = req.body;
-    var newaccounts = web3.eth.accounts.create(web3.utils.randomHex(32), function (err) {
-    });
-    console.log(newaccounts.privateKey);
+    var { id, password } = req.body;
+    var accountPassword = web3.utils.randomHex(32)
+    var newaccounts = web3.eth.accounts.create(accountPassword)
     db.query(`insert into wallet_info(id, password, public_key, private_key) values(?, ?, ?, ?)`,
-        [post.id, post.password, newaccounts.address, newaccounts.privateKey], function (error, result) {
+        [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
             res.redirect('/')
-        });
+        })
+
 });
 
 router.post('/login_process', function (req, res) {
-    var post = req.body;
-    db.query(`select num, id, password from wallet_info`, function (err, result){
-        
-        for (var i = 0; i < result.length; i++) {
-            if (result[i].num != undefined) {
-                if (post.id == result[i].id && post.password == result[i].password) {
-                    console.log('로그인 성공')
-                    res.redirect('/topic/main')
-                /*} else {
-                  // res.send("올바른 아이디/비밀번호를 입력해주세요.")*/
-                }
+    var { id, password} = req.body;
+    db.query(`SELECT * FROM wallet_info WHERE id =? `, [id], function (err, userInfo) {
+        if (err) {
+            return res.redirect('/topic/fail')
+        }
+
+        if (!userInfo.length) {
+            // 로그인 실패(id 없음)
+            return res.redirect('/topic/permission')
+        }
+        else {
+            if (userInfo[0].password == password) {
+                req.session.password = userInfo[0].password;
+                req.session.public_key = userInfo[0].public_key;
+                req.session.private_key = userInfo[0].private_key;
+                req.session.id = userInfo[0].id;
+                req.session.save(() => {
+                    return res.redirect("/topic/main")
+                })
             } else {
-                
+                // 로그인 실패(패스워드 틀림)
+                return res.redirect('/topic/permission')
             }
-            console.log('올바른 아이디/비밀번호를 입력해주세요.')
-        };     
+        }
+        
     });
+
+});
+
+router.get('/fail', function (req, res) {
+    var html = template.FAIL
+    return res.send(html);
+});
+
+router.get('/permission', function (req, res) {
+    var html = template.PERMISSION
+    return res.send(html);
 });
 
 
 router.get('/main', function (req, res) {
+    console.log(req.session.id)
+    console.log(req.session.public_key)
+    console.log(req.session.private_key)
+    console.log(req.session.password)
     var html = template.HTML(
         `
         <script type="text/javascript" src="/public/js/bootstrap.js"></script>
@@ -95,10 +130,10 @@ router.get('/main', function (req, res) {
                 
                 <table class="table table-bordered">
                     <tr>
-                        <th scope="col">계정 아이디</th>
+                        <th scope="col"> </th>
                     </tr>
                     <tr>
-                        <th scope="row">퍼블릭키</th>
+                        <th scope="row">${req.session.public_key}</th>
                     </tr>
                 </table>
             </div>
