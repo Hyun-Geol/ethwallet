@@ -39,7 +39,7 @@ module.exports = {
             </style>
         </head>
         <body>
-            <h1> 로그인 정보가 옳바르지 않습니다. </h1>
+            <h1> 로그인 정보가 올바르지 않습니다. </h1>
         </body>
         </html>
     `,

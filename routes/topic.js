@@ -3,7 +3,10 @@ var app = express();
 var router = express.Router();
 var template = require('../public/lib/template.js');
 var Web3 = require('web3');
-var web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'));
+//var web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'));
+let web3 = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io'));
+//var web3 = new Web3(new Web3.providers.HttpProvider('https://api.myetherapi.com/rop'));
+
 var mysql = require('mysql');
 var bodyParser = require('body-parser');
 var session = require('express-session');
@@ -20,7 +23,7 @@ var db = mysql.createConnection({
 //db.connect();
 
 router.use(session({
-    secret: '12sdfwerwersdfserwerwef', //keboard cat (랜덤한 값)
+    secret: '135hjgui1g2541jikhfd', //keboard cat (랜덤한 값)
     resave: false,
     saveUninitialized: true,
     store: new mysqlstore({
@@ -38,7 +41,7 @@ router.get('/create', function (req, res) {
             <h4 class="display-4">Create wallet</h4><br/>
             <div class = "form-group">
                 <label for="id1">id</label>
-                <input type="text" class="form-control" name= "id" id="id" placeholder="id를 입력하세요"><br/>
+                <input type="text" class="form-control" name="id" id="id" placeholder="id를 입력하세요"><br/>
                 <label for="password1">password</label>
                 <input type="password" class="form-control" name= "password" id="password" placeholder="password를 입력하세요"><br/>
             </div>
@@ -53,16 +56,27 @@ router.post('/create_process', function (req, res) {
     var { id, password } = req.body;
     var accountPassword = web3.utils.randomHex(32)
     var newaccounts = web3.eth.accounts.create(accountPassword)
-    db.query(`insert into wallet_info(id, password, public_key, private_key) values(?, ?, ?, ?)`,
-        [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
-            res.redirect('/')
-        })
-
+    db.query('SELECT * FROM wallet_info WHERE userid =?', [id], function(err, userInfo){
+        db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
+            [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
+                res.redirect('/')
+            })
+       /*
+        if(id !== userInfo[0].userid) {
+            db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
+            [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
+                res.redirect('/')
+            })
+        } else {
+            res.send('중복되는 아이디가 존재합니다.');
+        }
+        */
+    })
 });
 
 router.post('/login_process', function (req, res) {
-    var { id, password} = req.body;
-    db.query(`SELECT * FROM wallet_info WHERE id =? `, [id], function (err, userInfo) {
+    var { id, password } = req.body;
+    db.query(`SELECT * FROM wallet_info WHERE userid =? `, [id], function (err, userInfo) {
         if (err) {
             return res.redirect('/topic/fail')
         }
@@ -73,11 +87,13 @@ router.post('/login_process', function (req, res) {
         }
         else {
             if (userInfo[0].password == password) {
+                req.session.is_logined = true;
                 req.session.password = userInfo[0].password;
+                req.session.userid = userInfo[0].userid;
                 req.session.public_key = userInfo[0].public_key;
                 req.session.private_key = userInfo[0].private_key;
-                req.session.id = userInfo[0].id;
-                req.session.save(() => {
+                
+                req.session.save(function(){
                     return res.redirect("/topic/main")
                 })
             } else {
@@ -102,10 +118,19 @@ router.get('/permission', function (req, res) {
 
 
 router.get('/main', function (req, res) {
-    console.log(req.session.id)
+    if(!req.session.is_logined){
+        return res.redirect('/');
+    }
+    console.log(req.session.password)
     console.log(req.session.public_key)
     console.log(req.session.private_key)
-    console.log(req.session.password)
+    console.log(req.session.userid)
+    web3.eth.getBalance(req.session.public_key.toString(),(err, wei) => {
+        balance = web3.utils.fromWei(wei, 'ether')
+        console.log("balance : " , balance, ' Ether') 
+    })
+
+
     var html = template.HTML(
         `
         <script type="text/javascript" src="/public/js/bootstrap.js"></script>
@@ -130,7 +155,7 @@ router.get('/main', function (req, res) {
                 
                 <table class="table table-bordered">
                     <tr>
-                        <th scope="col"> </th>
+                        <th scope="col"> ${req.session.userid}</th>
                     </tr>
                     <tr>
                         <th scope="row">${req.session.public_key}</th>
@@ -144,7 +169,7 @@ router.get('/main', function (req, res) {
             <form>
                 <div class="text-center">
                     <img src="/public/images/bono.png" alt="" class="small1"><br/><br/>
-                    <h3> 잔액 조회</h3>
+                    <h3> ` +  balance  + ` Ether </h3>
                     </p>
                     <button type="button" class="btn btn-outline-info">입금(추후예정)</button>
                     <button type="button" class="btn btn-outline-info" onclick="location.href='/topic/send'">전송</button>
@@ -165,6 +190,12 @@ router.get('/main', function (req, res) {
 });
 
 router.get('/send', function (req, res) {
+    if(!req.session.is_logined){
+        return res.redirect('/');
+    }
+    /* <label for="privatekey">From</label>
+    <input type="text" class="form-control" id="fromAddress"
+    placeholder="보내는 계정"><br /> */
     var html = template.HTML(
         `
         <script type="text/javascript" src="/public/js/bootstrap.js"></script>
@@ -175,22 +206,18 @@ router.get('/send', function (req, res) {
                 <h1 class="h2">Wallet Info</h1>
             </div>
     
-            <form action="/" method="post">
+            <form action="/topic/send_process" method="post">
                 <div class="form-group">
                     <label for="privatekey">To</label>
-                    <input type="password" class="form-control" id="exampleInputPassword1"
-                        placeholder="보내는 계정"><br />
-    
-                    <label for="privatekey">From</label>
-                    <input type="password" class="form-control" id="exampleInputPassword1"
+                    <input type="text" class="form-control" id="toAddress" name="toAddress"
                         placeholder="받는 계정"><br />
     
                     <label for="privatekey">Gas Price</label>
-                    <input type="password" class="form-control" id="exampleInputPassword1"
+                    <input type="text" class="form-control" id="gass_fee" name="gass_fee"
                         placeholder="가스비"><br />
     
                     <label for="privatekey">Value</label>
-                    <input type="password" class="form-control" id="exampleInputPassword1"
+                    <input type="text" class="form-control" id="value" name="value"
                         placeholder="전송량"><br />
                 </div>
                 <button type="submit" class="btn btn-outline-dark">전송</button>
@@ -204,9 +231,23 @@ router.get('/send', function (req, res) {
 
 });
 
+router.post('/send_process', function (req, res) {
+var { toAddress, gass_fee, value } = req.body;
+console.log(req.session.public_key, toAddress, value)
+web3.eth.sendTransaction({
+    from: req.session.public_key,
+    to: toAddress,
+    value: value
+    }, function(err, transactionHash) {
+  if (!err){
+    console.log(transactionHash + " success"); 
+  }
+})
+
+
+});
 
 
 
 
-
-module.exports = router;    
+module.exports = router;
