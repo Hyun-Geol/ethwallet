@@ -1,20 +1,22 @@
-var express = require('express');
-var app = express();
-var router = express.Router();
-var template = require('../public/lib/template.js');
-var Web3 = require('web3');
-//var web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'));
-let web3 = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io'));
+const express = require('express');
+const app = express();
+const router = express.Router();
+const template = require('../public/lib/template.js');
+const Web3 = require('web3');
+const Tx = require('ethereumjs-tx').Transaction
+//const web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'));
+const web3 = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io'));
 //var web3 = new Web3(new Web3.providers.HttpProvider('https://api.myetherapi.com/rop'));
 
-var mysql = require('mysql');
-var bodyParser = require('body-parser');
-var session = require('express-session');
-var mysqlstore = require('express-mysql-session')(session);
+
+const mysql = require('mysql');
+const bodyParser = require('body-parser');
+const session = require('express-session');
+const mysqlstore = require('express-mysql-session')(session);
 
 router.use(bodyParser.urlencoded({ extended: false }));
 
-var db = mysql.createConnection({
+const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: '111111',
@@ -56,21 +58,17 @@ router.post('/create_process', function (req, res) {
     var { id, password } = req.body;
     var accountPassword = web3.utils.randomHex(32)
     var newaccounts = web3.eth.accounts.create(accountPassword)
-    db.query('SELECT * FROM wallet_info WHERE userid =?', [id], function(err, userInfo){
-        db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
-            [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
-                res.redirect('/')
-            })
-       /*
-        if(id !== userInfo[0].userid) {
+    //db.query('SELECT * FROM wallet_info WHERE userid =?', [id], function (err, userInfo) {
+    db.query('SELECT * FROM wallet_info', function (err, userInfo) {
+        if(userInfo[0].userid == id) {
+            return res.redirect('/topic/overlap')
+        }else {
             db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
             [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
                 res.redirect('/')
-            })
-        } else {
-            res.send('중복되는 아이디가 존재합니다.');
+            })  
         }
-        */
+        
     })
 });
 
@@ -92,8 +90,8 @@ router.post('/login_process', function (req, res) {
                 req.session.userid = userInfo[0].userid;
                 req.session.public_key = userInfo[0].public_key;
                 req.session.private_key = userInfo[0].private_key;
-                
-                req.session.save(function(){
+
+                req.session.save(function () {
                     return res.redirect("/topic/main")
                 })
             } else {
@@ -101,7 +99,7 @@ router.post('/login_process', function (req, res) {
                 return res.redirect('/topic/permission')
             }
         }
-        
+
     });
 
 });
@@ -115,24 +113,32 @@ router.get('/permission', function (req, res) {
     var html = template.PERMISSION
     return res.send(html);
 });
+router.get('/overlap', function (req, res) {
+    var html = template.OVERLAP
+    return res.send(html);
+});
 
 
 router.get('/main', function (req, res) {
-    if(!req.session.is_logined){
+    if (!req.session.is_logined) {
         return res.redirect('/');
     }
     console.log(req.session.password)
     console.log(req.session.public_key)
     console.log(req.session.private_key)
     console.log(req.session.userid)
-    web3.eth.getBalance(req.session.public_key.toString(),(err, wei) => {
-        balance = web3.utils.fromWei(wei, 'ether')
-        console.log("balance : " , balance, ' Ether') 
-    })
+    getBalance = async () => {
+        await web3.eth.getBalance(req.session.public_key.toString(), (err, wei) => {
+            balance = web3.utils.fromWei(wei, 'ether')
+            console.log("balance : ", balance, ' Ether')
+        })
+       
 
 
-    var html = template.HTML(
-        `
+
+        var html = template.HTML(
+            `
+        <script src="http://code.jquery.com/jquery-latest.min.js"></script>
         <script type="text/javascript" src="/public/js/bootstrap.js"></script>
         <!--network-->
         <div class="dropdown">
@@ -169,7 +175,7 @@ router.get('/main', function (req, res) {
             <form>
                 <div class="text-center">
                     <img src="/public/images/bono.png" alt="" class="small1"><br/><br/>
-                    <h3> ` +  balance  + ` Ether </h3>
+                    <h3> ` + balance + ` Ether </h3>
                     </p>
                     <button type="button" class="btn btn-outline-info">입금(추후예정)</button>
                     <button type="button" class="btn btn-outline-info" onclick="location.href='/topic/send'">전송</button>
@@ -185,12 +191,15 @@ router.get('/main', function (req, res) {
         </div>
     </body>
     `
-    );
-    res.send(html);
+        );
+        res.send(html);
+    }
+    getBalance();
 });
 
+
 router.get('/send', function (req, res) {
-    if(!req.session.is_logined){
+    if (!req.session.is_logined) {
         return res.redirect('/');
     }
     /* <label for="privatekey">From</label>
@@ -198,6 +207,7 @@ router.get('/send', function (req, res) {
     placeholder="보내는 계정"><br /> */
     var html = template.HTML(
         `
+        <script src="http://code.jquery.com/jquery-latest.min.js"></script>
         <script type="text/javascript" src="/public/js/bootstrap.js"></script>
         <div class="dropdown">
     
@@ -213,7 +223,7 @@ router.get('/send', function (req, res) {
                         placeholder="받는 계정"><br />
     
                     <label for="privatekey">Gas Price</label>
-                    <input type="text" class="form-control" id="gass_fee" name="gass_fee"
+                    <input type="text" class="form-control" id="gasPrice" name="gasPrice"
                         placeholder="가스비"><br />
     
                     <label for="privatekey">Value</label>
@@ -232,20 +242,37 @@ router.get('/send', function (req, res) {
 });
 
 router.post('/send_process', function (req, res) {
-var { toAddress, gass_fee, value } = req.body;
-console.log(req.session.public_key, toAddress, value)
-web3.eth.sendTransaction({
-    from: req.session.public_key,
-    to: toAddress,
-    value: value
-    }, function(err, transactionHash) {
-  if (!err){
-    console.log(transactionHash + " success"); 
-  }
+    const gasLimit = 21000
+    const gWei = 9
+    sendTransaction = async () => {
+        let { toAddress, gasPrice, value } = req.body;
+        var nonce = await web3.eth.getTransactionCount(req.session.public_key, "pending") //await
+        const rawTx = {
+            nonce: nonce,
+            gasLimit: web3.utils.toHex(gasLimit),
+            gasPrice: web3.utils.toHex(gasPrice * (10 ** gWei)),
+            from: req.session.public_key,
+            to: toAddress,
+            value: web3.utils.toHex(web3.utils.toWei(value, 'ether')),
+            data: '',
+        }
+        let privateKey = new Buffer.from(req.session.private_key.substring(2, 66), 'hex')
+        let tx = new Tx(rawTx, { chain: 'ropsten' });
+        tx.sign(privateKey)
+        let serializedTx = tx.serialize();
+        web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'), function (err, hash) {
+            if (err) {
+                throw err;
+            }
+            console.log(hash)
+        })
+        res.redirect('/topic/main')
+    }
+
+    sendTransaction()
 })
 
 
-});
 
 
 
