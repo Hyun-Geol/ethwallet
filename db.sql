@@ -8,7 +8,7 @@ CREATE TABLE `wallet_info` (
 );
 
 
-insert into wallet_info(id, password, public_key, private_key) values ('pilsa','111111','0x80eA97719143fab6Fa7C33d19DDA964667e7B08e','93745A59FC55711F13A5C5D460527050FF4C20A8CC409B39324A50D31152ADE4');
+insert into wallet_info(userid, password, public_key, private_key) values ('pilsa','111111','0x80eA97719143fab6Fa7C33d19DDA964667e7B08e','93745A59FC55711F13A5C5D460527050FF4C20A8CC409B39324A50D31152ADE4');
 
 
 mysql -uroot -p111111
