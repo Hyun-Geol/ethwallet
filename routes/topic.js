@@ -25,6 +25,7 @@ const db = mysql.createConnection({
 //db.connect();
 
 router.use(session({
+    key: 'sid',
     secret: '135hjgui1g2541jikhfd', //keboard cat (랜덤한 값)
     resave: false,
     saveUninitialized: true,
@@ -58,17 +59,17 @@ router.post('/create_process', function (req, res) {
     var { id, password } = req.body;
     var accountPassword = web3.utils.randomHex(32)
     var newaccounts = web3.eth.accounts.create(accountPassword)
-    //db.query('SELECT * FROM wallet_info WHERE userid =?', [id], function (err, userInfo) {
     db.query('SELECT * FROM wallet_info', function (err, userInfo) {
-        if(userInfo[0].userid == id) {
-            return res.redirect('/topic/overlap')
-        }else {
-            db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
-            [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
-                res.redirect('/')
-            })  
+        if (err) throw err;
+            if (userInfo[0] === undefined || userInfo[0] !== undefined) {
+                db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
+                    [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
+                        res.redirect('/')
+                    })
+            } else if(userInfo[0].userid == id){
+                return res.redirect('/topic/overlap')
         }
-        
+
     })
 });
 
@@ -123,18 +124,16 @@ router.get('/main', function (req, res) {
     if (!req.session.is_logined) {
         return res.redirect('/');
     }
-    console.log(req.session.password)
+    /*console.log(req.session.password)
     console.log(req.session.public_key)
     console.log(req.session.private_key)
-    console.log(req.session.userid)
+    console.log(req.session.userid)*/
+
     getBalance = async () => {
         await web3.eth.getBalance(req.session.public_key.toString(), (err, wei) => {
             balance = web3.utils.fromWei(wei, 'ether')
             console.log("balance : ", balance, ' Ether')
         })
-       
-
-
 
         var html = template.HTML(
             `
@@ -179,6 +178,7 @@ router.get('/main', function (req, res) {
                     </p>
                     <button type="button" class="btn btn-outline-info">입금(추후예정)</button>
                     <button type="button" class="btn btn-outline-info" onclick="location.href='/topic/send'">전송</button>
+                    <button type="button" class="btn btn-outline-info" id="logout" name="logout" onclick="location.href='/topic/session_destroy'">로그아웃</button>
                 </div>
             </form>
         </div>
@@ -186,7 +186,8 @@ router.get('/main', function (req, res) {
         <!--히스토리-->
         <div>
             <div class="form-group">
-                <label for="exampleInputEmail1">History</label>
+                <label for="exampleInputEmail1">History</label><br>
+                <a href = https://ropsten.etherscan.io/tx/` + req.session.txHash + ` target="_blank">${req.session.txHash}</a>
             </div>
         </div>
     </body>
@@ -197,14 +198,10 @@ router.get('/main', function (req, res) {
     getBalance();
 });
 
-
 router.get('/send', function (req, res) {
     if (!req.session.is_logined) {
         return res.redirect('/');
     }
-    /* <label for="privatekey">From</label>
-    <input type="text" class="form-control" id="fromAddress"
-    placeholder="보내는 계정"><br /> */
     var html = template.HTML(
         `
         <script src="http://code.jquery.com/jquery-latest.min.js"></script>
@@ -236,9 +233,7 @@ router.get('/send', function (req, res) {
         </div>
         `
     );
-
     res.send(html);
-
 });
 
 router.post('/send_process', function (req, res) {
@@ -265,16 +260,20 @@ router.post('/send_process', function (req, res) {
                 throw err;
             }
             console.log(hash)
+            req.session.txHash = hash;
+            req.session.save(function () { })
         })
-        res.redirect('/topic/main')
+        res.redirect("/topic/main")
     }
 
     sendTransaction()
 })
 
-
-
-
+router.get('/session_destroy', function (req, res) {
+    req.session.destroy();  // 세션 삭제
+    res.clearCookie('sid'); // 세션 쿠키 삭제
+    res.redirect('/');
+})
 
 
 module.exports = router;
