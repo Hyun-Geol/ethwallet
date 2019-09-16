@@ -59,15 +59,16 @@ router.post('/create_process', function (req, res) {
     var { id, password } = req.body;
     var accountPassword = web3.utils.randomHex(32)
     var newaccounts = web3.eth.accounts.create(accountPassword)
+
     db.query('SELECT * FROM wallet_info', function (err, userInfo) {
         if (err) throw err;
-            if (userInfo[0] === undefined || userInfo[0] !== undefined) {
-                db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
-                    [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
-                        res.redirect('/')
-                    })
-            } else if(userInfo[0].userid == id){
-                return res.redirect('/topic/overlap')
+        if (userInfo[0] === undefined || userInfo[0] !== undefined) {
+            db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
+                [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
+                    res.redirect('/')
+                })
+        } else if (userInfo[0].userid == id) {
+            return res.redirect('/topic/overlap')
         }
 
     })
@@ -120,6 +121,9 @@ router.get('/overlap', function (req, res) {
 });
 
 
+
+
+
 router.get('/main', function (req, res) {
     if (!req.session.is_logined) {
         return res.redirect('/');
@@ -128,17 +132,37 @@ router.get('/main', function (req, res) {
     console.log(req.session.public_key)
     console.log(req.session.private_key)
     console.log(req.session.userid)*/
+    var userid = req.session.userid
+    db.query(`SELECT num, userid, txHash, date_format(time, '%Y-%m-%d %H:%i:%s') as time FROM txHash WHERE userid=?`, [userid], function (err, txInfo) {
+        if (err) {
+            console.log(err)
+        } else {
+            getBalance = async () => {
+                await web3.eth.getBalance(req.session.public_key.toString(), (err, wei) => {
+                    balance = web3.utils.fromWei(wei, 'ether')
+                    console.log("balance : ", balance, ' Ether')
+                })
+                if (txInfo.length == 0) {
+                    TxHash = '';
 
-    getBalance = async () => {
-        await web3.eth.getBalance(req.session.public_key.toString(), (err, wei) => {
-            balance = web3.utils.fromWei(wei, 'ether')
-            console.log("balance : ", balance, ' Ether')
-        })
+                } else if (txInfo.length > 0) {
+                    var TxHashList = '<table class="table table-hover">';
+                    for (var i = 1; i <= txInfo.length; i++) {
+                        
+                        TxHashList += `
+                            <tr>
+                                <td><a href = https://ropsten.etherscan.io/tx/${txInfo[txInfo.length - i].txHash} target="_blank">${txInfo[txInfo.length - i].txHash}</a></td>
+                                <td>${txInfo[txInfo.length - i].time}</td>
+                            </tr>
+                            `         
+                    }
+            TxHashList += '</table>'
+                
 
-        var html = template.HTML(
-            `
-        <script src="http://code.jquery.com/jquery-latest.min.js"></script>
-        <script type="text/javascript" src="/public/js/bootstrap.js"></script>
+                }
+                    var html = template.HTML(
+                            `
+        
         <!--network-->
         <div class="dropdown">
             <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenubutton" data-toggle="dropdown"
@@ -187,16 +211,28 @@ router.get('/main', function (req, res) {
         <div>
             <div class="form-group">
                 <label for="exampleInputEmail1">History</label><br>
-                <a href = https://ropsten.etherscan.io/tx/` + req.session.txHash + ` target="_blank">${req.session.txHash}</a>
+                ${TxHashList}
             </div>
         </div>
     </body>
     `
-        );
-        res.send(html);
-    }
-    getBalance();
+                        );
+                        res.send(html);
+                    }
+                    getBalance();
+                }
+
+
+            }
+
+        
+
+    );
 });
+
+
+
+
 
 router.get('/send', function (req, res) {
     if (!req.session.is_logined) {
@@ -259,11 +295,13 @@ router.post('/send_process', function (req, res) {
             if (err) {
                 throw err;
             }
+            db.query('SELECT * FROM txHash', function (err, userInfo) {
+                db.query(`INSERT INTO txHash(userid, txHash, time) VALUES(?, ?, now())`, [req.session.userid, hash], function (error, result) {
+                    res.redirect("/topic/main")
+                })
+            })
             console.log(hash)
-            req.session.txHash = hash;
-            req.session.save(function () { })
         })
-        res.redirect("/topic/main")
     }
 
     sendTransaction()
