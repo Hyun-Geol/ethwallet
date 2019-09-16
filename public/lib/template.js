@@ -15,6 +15,8 @@ module.exports = {
                     width: 50px;
                 }
             </style>
+            <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+            <script type="text/javascript" src="/public/js/bootstrap.js"></script>
         </head>
         <body>
             ${body}
