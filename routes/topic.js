@@ -133,17 +133,18 @@ router.get('/main', function (req, res) {
     console.log(req.session.private_key)
     console.log(req.session.userid)*/
     var userid = req.session.userid
-    db.query(`SELECT num, userid, txHash, date_format(time, '%Y-%m-%d %H:%i:%s') as time FROM txHash WHERE userid=?`, [userid], function (err, txInfo) {
+    db.query(`SELECT num, userid, txHash, date_format(time, '%Y-%m-%d %H:%i:%s') as time FROM txHash WHERE userid=?`, [userid], async function (err, txInfo) {
         if (err) {
             console.log(err)
         } else {
-            getBalance = async () => {
-                await web3.eth.getBalance(req.session.public_key.toString(), (err, wei) => {
+            
+                await web3.eth.getBalance(req.session.public_key.toString(), function(err, wei) {
                     balance = web3.utils.fromWei(wei, 'ether')
                     console.log("balance : ", balance, ' Ether')
                 })
-                if (txInfo.length == 0) {
-                    TxHash = '';
+                if (!txInfo.length) {
+                    TxHashList = '';
+                    console.log(TxHashList);    
 
                 } else if (txInfo.length > 0) {
                     var TxHashList = '<table class="table table-hover">';
@@ -154,12 +155,12 @@ router.get('/main', function (req, res) {
                                 <td><a href = https://ropsten.etherscan.io/tx/${txInfo[txInfo.length - i].txHash} target="_blank">${txInfo[txInfo.length - i].txHash}</a></td>
                                 <td>${txInfo[txInfo.length - i].time}</td>
                             </tr>
-                            `         
+                            `       
+                                 
                     }
-            TxHashList += '</table>'
-                
-
+                    TxHashList += '</table>'  
                 }
+                console.log(TxHashList); 
                     var html = template.HTML(
                             `
         
@@ -218,8 +219,7 @@ router.get('/main', function (req, res) {
     `
                         );
                         res.send(html);
-                    }
-                    getBalance();
+                   
                 }
 
 
