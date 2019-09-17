@@ -2,31 +2,24 @@ const express = require('express');
 const app = express();
 const router = express.Router();
 const template = require('../public/lib/template.js');
+const db = require('../public/lib/db');
 const Web3 = require('web3');
 const Tx = require('ethereumjs-tx').Transaction
 //const web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'));
 const web3 = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io'));
 //var web3 = new Web3(new Web3.providers.HttpProvider('https://api.myetherapi.com/rop'));
 
-
-const mysql = require('mysql');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const mysqlstore = require('express-mysql-session')(session);
 
 router.use(bodyParser.urlencoded({ extended: false }));
 
-const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '111111',
-    database: 'wallet'
-});
 //db.connect();
 
 router.use(session({
     key: 'sid',
-    secret: '135hjgui1g2541jikhfd', //keboard cat (랜덤한 값)
+    secret: '135hjgui1g2541jikhfd', //keyboard cat (랜덤한 값)
     resave: false,
     saveUninitialized: true,
     store: new mysqlstore({
@@ -128,22 +121,19 @@ router.get('/main', function (req, res) {
     if (!req.session.is_logined) {
         return res.redirect('/');
     }
-    /*console.log(req.session.password)
-    console.log(req.session.public_key)
-    console.log(req.session.private_key)
-    console.log(req.session.userid)*/
     var userid = req.session.userid
-    db.query(`SELECT num, userid, txHash, date_format(time, '%Y-%m-%d %H:%i:%s') as time FROM txHash WHERE userid=?`, [userid], function (err, txInfo) {
+    db.query(`SELECT num, userid, txHash, date_format(time, '%Y-%m-%d %H:%i:%s') as time FROM txHash WHERE userid=?`, [userid], async function (err, txInfo) {
         if (err) {
             console.log(err)
         } else {
-            getBalance = async () => {
-                await web3.eth.getBalance(req.session.public_key.toString(), (err, wei) => {
+            
+                await web3.eth.getBalance(req.session.public_key.toString(), function(err, wei) {
                     balance = web3.utils.fromWei(wei, 'ether')
-                    console.log("balance : ", balance, ' Ether')
+                   
                 })
-                if (txInfo.length == 0) {
-                    TxHash = '';
+                if (!txInfo.length) {
+                    TxHashList = '';
+                     
 
                 } else if (txInfo.length > 0) {
                     var TxHashList = '<table class="table table-hover">';
@@ -154,12 +144,12 @@ router.get('/main', function (req, res) {
                                 <td><a href = https://ropsten.etherscan.io/tx/${txInfo[txInfo.length - i].txHash} target="_blank">${txInfo[txInfo.length - i].txHash}</a></td>
                                 <td>${txInfo[txInfo.length - i].time}</td>
                             </tr>
-                            `         
+                            `       
+                                 
                     }
-            TxHashList += '</table>'
-                
-
+                    TxHashList += '</table>'  
                 }
+               
                     var html = template.HTML(
                             `
         
@@ -218,8 +208,7 @@ router.get('/main', function (req, res) {
     `
                         );
                         res.send(html);
-                    }
-                    getBalance();
+                   
                 }
 
 
@@ -229,9 +218,6 @@ router.get('/main', function (req, res) {
 
     );
 });
-
-
-
 
 
 router.get('/send', function (req, res) {
@@ -308,9 +294,12 @@ router.post('/send_process', function (req, res) {
 })
 
 router.get('/session_destroy', function (req, res) {
+    req.session.is_logined = false;
+    console.log(req.session);
     req.session.destroy();  // 세션 삭제
     res.clearCookie('sid'); // 세션 쿠키 삭제
     res.redirect('/');
+    
 })
 
 
