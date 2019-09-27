@@ -16,7 +16,7 @@ module.exports = {
                 }
             </style>
         </head>
-        <body>
+        <body class="container">
             ${body}
         </body>
         </html>

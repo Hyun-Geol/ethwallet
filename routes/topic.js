@@ -1,11 +1,11 @@
 const express = require('express');
+const Web3 = require('web3');
 const app = express();
 const router = express.Router();
 const template = require('../public/lib/template.js');
-const Web3 = require('web3');
 const Tx = require('ethereumjs-tx').Transaction
 //const web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'));
-const web3 = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io'));
+let web3 = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io'));
 //var web3 = new Web3(new Web3.providers.HttpProvider('https://api.myetherapi.com/rop'));
 
 
@@ -61,13 +61,13 @@ router.post('/create_process', function (req, res) {
     var newaccounts = web3.eth.accounts.create(accountPassword)
     db.query('SELECT * FROM wallet_info', function (err, userInfo) {
         if (err) throw err;
-            if (userInfo[0] === undefined || userInfo[0] !== undefined) {
-                db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
-                    [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
-                        res.redirect('/')
-                    })
-            } else if(userInfo[0].userid == id){
-                return res.redirect('/topic/overlap')
+        if (userInfo[0] === undefined || userInfo[0] !== undefined) {
+            db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
+                [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
+                    res.redirect('/')
+                })
+        } else if (userInfo[0].userid == id) {
+            return res.redirect('/topic/overlap')
         }
 
     })
@@ -124,38 +124,55 @@ router.get('/main', function (req, res) {
     if (!req.session.is_logined) {
         return res.redirect('/');
     }
-    /*console.log(req.session.password)
+    /*
+    console.log(req.session.password)
     console.log(req.session.public_key)
     console.log(req.session.private_key)
-    console.log(req.session.userid)*/
+    console.log(req.session.userid)
+    */
+    var userid = req.session.userid
+    db.query(`SELECT * FROM txHash WHERE userid=?`, [userid], async function (err, txInfo) {
+        if (err) {
+            console.log(err)
+        } else {
+                await web3.eth.getBalance(req.session.public_key.toString(), function(err, wei) {
+                    balance = web3.utils.fromWei(wei, 'ether')
+                    console.log("balance : ", balance, ' Ether')
+                })
+                if (!txInfo.length) {
+                    TxHashList = '';
 
-    getBalance = async () => {
-        await web3.eth.getBalance(req.session.public_key.toString(), (err, wei) => {
-            balance = web3.utils.fromWei(wei, 'ether')
-            console.log("balance : ", balance, ' Ether')
-        })
-
-        var html = template.HTML(
-            `
-        <script src="http://code.jquery.com/jquery-latest.min.js"></script>
-        <script type="text/javascript" src="/public/js/bootstrap.js"></script>
+                } else if (txInfo.length > 0) {
+                    var TxHashList = '<table class="table table-hover">';
+                    for (var i = 1; i <= txInfo.length; i++) {
+                        TxHashList += `
+                            <tr>
+                                <td><a href = http://203.236.220.35:3000/tx/${txInfo[txInfo.length - i].txHash} target="_blank">${txInfo[txInfo.length - i].txHash}</a></td>
+                            </tr>
+                            `
+                    }
+                    TxHashList += '</table>'
+                }
+                var html = template.HTML(
+                    `
+        
         <!--network-->
         <div class="dropdown">
             <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenubutton" data-toggle="dropdown"
                 aria-haspopup="true" aria-expanded="false">
-                Network
+                Rosten
             </button>
             <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                <a class="dropdown-item" href="#">이더리움 메인넷</a>
-                <a class="dropdown-item" href="#">Ropsten 테스트넷</a>
-                <a class="dropdown-item" href="#">Kovan 테스트넷</a>
-                <a class="dropdown-item" href="#">Rinkeby 테스트넷</a>
-                <a class="dropdown-item" href="#">로컬호스트 8545</a>
+                <a class="dropdown-item" href="#" name="main">이더리움 메인넷</a>
+                <a class="dropdown-item" href="#" name="ropsten">Ropsten 테스트넷</a>
+                <a class="dropdown-item" href="#" name="kovan">Kovan 테스트넷</a>
+                <a class="dropdown-item" href="#" name="rinkeby">Rinkeby 테스트넷</a>
+                <a class="dropdown-item" href="#" name="local">로컬호스트 8545</a>
             </div>
         </div>
     
         <!--계정확인-->
-        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom" style="width:64%;">
             <div class="text-center">
                 
                 <table class="table table-bordered">
@@ -170,11 +187,11 @@ router.get('/main', function (req, res) {
         </div>
     
         <!--입금 전송-->
-        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom" style="width:64%;">
             <form>
                 <div class="text-center">
                     <img src="/public/images/bono.png" alt="" class="small1"><br/><br/>
-                    <h3> ` + balance + ` Ether </h3>
+                    <h3> ${balance} Ether </h3>
                     </p>
                     <button type="button" class="btn btn-outline-info">입금(추후예정)</button>
                     <button type="button" class="btn btn-outline-info" onclick="location.href='/topic/send'">전송</button>
@@ -185,17 +202,19 @@ router.get('/main', function (req, res) {
     
         <!--히스토리-->
         <div>
-            <div class="form-group">
+            <div class="form-group" style="width:50%;">
                 <label for="exampleInputEmail1">History</label><br>
-                <a href = https://ropsten.etherscan.io/tx/` + req.session.txHash + ` target="_blank">${req.session.txHash}</a>
+                ${TxHashList}
             </div>
         </div>
     </body>
     `
-        );
-        res.send(html);
+                );
+                res.send(html);
+            
+        }
     }
-    getBalance();
+    );
 });
 
 router.get('/send', function (req, res) {
@@ -258,12 +277,26 @@ router.post('/send_process', function (req, res) {
         web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'), function (err, hash) {
             if (err) {
                 throw err;
+            } else {
+                db.query('SELECT * FROM txHash', function (err, userInfo) {
+                    if (err) throw err;
+                    if (userInfo[0] === undefined || userInfo !== undefined) {
+
+                        txHash = new Array();
+                        txHash = hash;
+                        //console.log(txHash)
+                        var userid = req.session.userid;
+                        db.query('INSERT INTO txHash(userid, txHash) VALUES(?, ?)', [userid, txHash], function (error, result) {
+                            if (error) {
+                                console.log(error)
+                            } else {
+                                res.redirect("/topic/main")
+                            }
+                        })
+                    }
+                })
             }
-            console.log(hash)
-            req.session.txHash = hash;
-            req.session.save(function () { })
         })
-        res.redirect("/topic/main")
     }
 
     sendTransaction()
