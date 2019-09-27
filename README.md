@@ -13,20 +13,20 @@ $ npm start
 
  2. 시작 페이지(로그인)
 
-    ![startPage](.\screenshot\startPage.png)
+    ![startPage](./screenshot/startPage.png)
 
  3. 회원가입 페이지
 
-    ![createwallet](.\screenshot\createwallet.png)
+    ![createwallet](./screenshot/createwallet.png)
 
  4. 메인 페이지
 
-    ![mainpage](.\screenshot\mainpage.png)
+    ![mainpage](./screenshot/mainpage.png)
 
  5. 전송 페이지
 
-    ![sendpage](.\screenshot\sendpage.png)
+    ![sendpage](./screenshot/sendpage.png)
 
  6. 에러 페이지
 
-    ![errpage](.\screenshot\errpage.png)
+    ![errpage](./screenshot/errpage.png)
