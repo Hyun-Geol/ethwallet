@@ -13,20 +13,20 @@ $ npm start
 
  2. 시작 페이지(로그인)
 
-    ![startPage](C:\Users\class3\Desktop\project\ethwallet\screenshot\startPage.png)
+    ![startPage](.\screenshot\startPage.png)
 
  3. 회원가입 페이지
 
-    ![createwallet](C:\Users\class3\Desktop\project\ethwallet\screenshot\createwallet.png)
+    ![createwallet](.\screenshot\createwallet.png)
 
  4. 메인 페이지
 
-    ![mainpage](C:\Users\class3\Desktop\project\ethwallet\screenshot\mainpage.png)
+    ![mainpage](.\screenshot\mainpage.png)
 
  5. 전송 페이지
 
-    ![sendpage](C:\Users\class3\Desktop\project\ethwallet\screenshot\sendpage.png)
+    ![sendpage](.\screenshot\sendpage.png)
 
  6. 에러 페이지
 
-    ![errpage](C:\Users\class3\Desktop\project\ethwallet\screenshot\errpage.png)
+    ![errpage](.\screenshot\errpage.png)
