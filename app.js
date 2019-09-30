@@ -6,6 +6,7 @@ var indexRouter = require('./routes/index');
 var topicRouter = require('./routes/topic');
 
 app.use('/public', express.static(__dirname + "/public"));
+app.set('view engine', 'ejs');
 
 app.use('/', indexRouter);
 app.use('/topic', topicRouter);

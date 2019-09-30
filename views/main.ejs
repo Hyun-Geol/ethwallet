@@ -1,0 +1,63 @@
+<!doctype html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Wallet</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    </head>
+    <body class="container">
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenubutton" data-toggle="dropdown"
+                aria-haspopup="true" aria-expanded="false">
+                Rosten
+            </button>
+            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                <a class="dropdown-item" href="#" name="main">이더리움 메인넷</a>
+                <a class="dropdown-item" href="#" name="ropsten">Ropsten 테스트넷</a>
+                <a class="dropdown-item" href="#" name="kovan">Kovan 테스트넷</a>
+                <a class="dropdown-item" href="#" name="rinkeby">Rinkeby 테스트넷</a>
+                <a class="dropdown-item" href="#" name="local">로컬호스트 8545</a>
+            </div>
+        </div>
+    
+        <!--계정확인-->
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom" style="width:64%;">
+            <div class="text-center">
+                
+                <table class="table table-bordered">
+                    <tr>
+                        <th scope="col"><%- userid %></th>
+                    </tr>
+                    <tr>
+                        <th scope="row"><%- public_key %></th>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <!--입금 전송-->
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom" style="width:64%;">
+            <form>
+                <div class="text-center">
+                    <img src="/public/images/bono.png" alt="" style="width: 100px;"><br/><br/>
+                    <h3> <%- balance %> Ether </h3>
+                    </p>
+                    <button type="button" class="btn btn-outline-info">입금(추후예정)</button>
+                    <button type="button" class="btn btn-outline-info" onclick="location.href='/topic/send'">전송</button>
+                    <button type="button" class="btn btn-outline-info" id="logout" name="logout" onclick="location.href='/topic/session_destroy'">로그아웃</button>
+                </div>
+            </form>
+        </div>
+    
+        <!--히스토리-->
+        <div>
+            <div class="form-group" style="width:50%;">
+                <label for="exampleInputEmail1">History</label><br>
+                <%- TxHashList %>
+            </div>
+        </div>
+    </body>
+</html>

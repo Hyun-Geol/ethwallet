@@ -38,21 +38,8 @@ router.use(session({
 }))
 
 router.get('/create', function (req, res) {
-    var html = template.HTML(
-        `
-        <form action="/topic/create_process" method="post">
-            <h4 class="display-4">Create wallet</h4><br/>
-            <div class = "form-group">
-                <label for="id1">id</label>
-                <input type="text" class="form-control" name="id" id="id" placeholder="id를 입력하세요"><br/>
-                <label for="password1">password</label>
-                <input type="password" class="form-control" name= "password" id="password" placeholder="password를 입력하세요"><br/>
-            </div>
-            <button type="submit" class="btn btn-outline-info">생성</button>
-            <button type="button" class="btn btn-outline-dark" onclick="location.href='/'">취소</button>
-        </form>`
-    );
-    res.send(html);
+    
+    res.render('create');
 });
 
 router.post('/create_process', function (req, res) {
@@ -124,20 +111,22 @@ router.get('/main', function (req, res) {
     if (!req.session.is_logined) {
         return res.redirect('/');
     }
-    /*
-    console.log(req.session.password)
+    /*console.log(req.session.password)
     console.log(req.session.public_key)
     console.log(req.session.private_key)
-    console.log(req.session.userid)
-    */
-    var userid = req.session.userid
+    console.log(req.session.userid)*/
+    
+    var userid = req.session.userid;
+    var public_key = req.session.public_key;
+    console.log(userid)
+    console.log(public_key)
     db.query(`SELECT * FROM txHash WHERE userid=?`, [userid], async function (err, txInfo) {
         if (err) {
             console.log(err)
         } else {
-                await web3.eth.getBalance(req.session.public_key.toString(), function(err, wei) {
+                await web3.eth.getBalance(public_key.toString(), function(err, wei) {
                     balance = web3.utils.fromWei(wei, 'ether')
-                    console.log("balance : ", balance, ' Ether')
+                    console.log("balance : ", balance, 'Ether')
                 })
                 if (!txInfo.length) {
                     TxHashList = '';
@@ -147,112 +136,23 @@ router.get('/main', function (req, res) {
                     for (var i = 1; i <= txInfo.length; i++) {
                         TxHashList += `
                             <tr>
-                                <td><a href = http://203.236.220.35:3000/tx/${txInfo[txInfo.length - i].txHash} target="_blank">${txInfo[txInfo.length - i].txHash}</a></td>
+                                <td><a href = http://203.236.220.40:3000/tx/${txInfo[txInfo.length - i].txHash} target="_blank">${txInfo[txInfo.length - i].txHash}</a></td>
                             </tr>
                             `
                     }
-                    TxHashList += '</table>'
+                    TxHashList += '</table>'    
                 }
-                var html = template.HTML(
-                    `
-        
-        <!--network-->
-        <div class="dropdown">
-            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenubutton" data-toggle="dropdown"
-                aria-haspopup="true" aria-expanded="false">
-                Rosten
-            </button>
-            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                <a class="dropdown-item" href="#" name="main">이더리움 메인넷</a>
-                <a class="dropdown-item" href="#" name="ropsten">Ropsten 테스트넷</a>
-                <a class="dropdown-item" href="#" name="kovan">Kovan 테스트넷</a>
-                <a class="dropdown-item" href="#" name="rinkeby">Rinkeby 테스트넷</a>
-                <a class="dropdown-item" href="#" name="local">로컬호스트 8545</a>
-            </div>
-        </div>
-    
-        <!--계정확인-->
-        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom" style="width:64%;">
-            <div class="text-center">
-                
-                <table class="table table-bordered">
-                    <tr>
-                        <th scope="col"> ${req.session.userid}</th>
-                    </tr>
-                    <tr>
-                        <th scope="row">${req.session.public_key}</th>
-                    </tr>
-                </table>
-            </div>
-        </div>
-    
-        <!--입금 전송-->
-        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom" style="width:64%;">
-            <form>
-                <div class="text-center">
-                    <img src="/public/images/bono.png" alt="" class="small1"><br/><br/>
-                    <h3> ${balance} Ether </h3>
-                    </p>
-                    <button type="button" class="btn btn-outline-info">입금(추후예정)</button>
-                    <button type="button" class="btn btn-outline-info" onclick="location.href='/topic/send'">전송</button>
-                    <button type="button" class="btn btn-outline-info" id="logout" name="logout" onclick="location.href='/topic/session_destroy'">로그아웃</button>
-                </div>
-            </form>
-        </div>
-    
-        <!--히스토리-->
-        <div>
-            <div class="form-group" style="width:50%;">
-                <label for="exampleInputEmail1">History</label><br>
-                ${TxHashList}
-            </div>
-        </div>
-    </body>
-    `
-                );
-                res.send(html);
-            
+            return res.render('main', { userid, public_key, balance, TxHashList });
         }
-    }
-    );
+    });
 });
 
 router.get('/send', function (req, res) {
     if (!req.session.is_logined) {
         return res.redirect('/');
     }
-    var html = template.HTML(
-        `
-        <script src="http://code.jquery.com/jquery-latest.min.js"></script>
-        <script type="text/javascript" src="/public/js/bootstrap.js"></script>
-        <div class="dropdown">
-    
-            <div
-                class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">Wallet Info</h1>
-            </div>
-    
-            <form action="/topic/send_process" method="post">
-                <div class="form-group">
-                    <label for="privatekey">To</label>
-                    <input type="text" class="form-control" id="toAddress" name="toAddress"
-                        placeholder="받는 계정"><br />
-    
-                    <label for="privatekey">Gas Price</label>
-                    <input type="text" class="form-control" id="gasPrice" name="gasPrice"
-                        placeholder="가스비"><br />
-    
-                    <label for="privatekey">Value</label>
-                    <input type="text" class="form-control" id="value" name="value"
-                        placeholder="전송량"><br />
-                </div>
-                <button type="submit" class="btn btn-outline-dark">전송</button>
-                <button type="button" class="btn btn-outline-dark" onclick="location.href='/topic/main'">취소</button>
-            </form>
-        </div>
-        `
-    );
-    res.send(html);
+   
+    res.render('send');
 });
 
 router.post('/send_process', function (req, res) {
