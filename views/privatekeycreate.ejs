@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+
+<head>
+    <% include navi/head %>
+</head>
+
+<body class="container">
+    <% include navi/header %>
+    
+    <form action="/topic/privatekeycreate_process" method="post">
+        <h4 class="display-4">Create wallet</h4><br />
+        <div class="form-group">
+            <label for="id1">id</label>
+            <input type="text" class="form-control" name="id" id="id" placeholder="id를 입력하세요"><br />
+            <label for="password1">password</label>
+            <input type="password" class="form-control" name="password" id="password"
+                placeholder="password를 입력하세요"><br />
+            <label for="id1">privatekey</label>
+            <input type="text" class="form-control" name="privatekey" id="privatekey"
+                placeholder="privatekey를 입력하세요"><br />
+        </div>
+        <button type="submit" class="btn btn-outline-info">생성</button>
+        <button type="button" class="btn btn-outline-dark" onclick="location.href='/'">취소</button>
+    </form>
+</body>
+
+</html>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+
+<head>
+    <% include navi/head %>
+</head>
+
+<body class="container">
+    <% include navi/header %>
+    
+    <form action="/topic/privatekey_process" method="post">
+        <h4 class="display-4">welcome!</h4><br />
+        <div class="form-group">
+            <label for="password">password</label>
+            <input type="password" class="form-control" id="password" name="password"
+                placeholder="password를 입력하세요"><br />
+        </div>
+        <button type="submit" class="btn btn-outline-info">개인키 가져오기</button>
+        <button type="button" class="btn btn-outline-dark" onclick="location.href='/topic/main'">메인페이지로 이동</button>
+    </form>
+</body>
+

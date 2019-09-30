@@ -2,27 +2,15 @@ const express = require('express');
 const Web3 = require('web3');
 const app = express();
 const router = express.Router();
-const template = require('../public/lib/template.js');
 const Tx = require('ethereumjs-tx').Transaction
-//const web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'));
-let web3 = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io'));
-//var web3 = new Web3(new Web3.providers.HttpProvider('https://api.myetherapi.com/rop'));
+const web3 = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io'));
 
-
-const mysql = require('mysql');
+const db = require('../public/js/db')
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const mysqlstore = require('express-mysql-session')(session);
 
 router.use(bodyParser.urlencoded({ extended: false }));
-
-const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '111111',
-    database: 'wallet'
-});
-//db.connect();
 
 router.use(session({
     key: 'sid',
@@ -38,38 +26,68 @@ router.use(session({
 }))
 
 router.get('/create', function (req, res) {
-    
-    res.render('create');
+    let title = 'Create Account'
+    return res.render('create', { title });
 });
 
 router.post('/create_process', function (req, res) {
     var { id, password } = req.body;
     var accountPassword = web3.utils.randomHex(32)
     var newaccounts = web3.eth.accounts.create(accountPassword)
-    db.query('SELECT * FROM wallet_info', function (err, userInfo) {
+    db.query('SELECT * FROM wallet_info WHERE userid=?', [id], function (err, userInfo) {
         if (err) throw err;
-        if (userInfo[0] === undefined || userInfo[0] !== undefined) {
-            db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
-                [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
-                    res.redirect('/')
+        if (userInfo.length || !userInfo.length) {
+            if (userInfo.length) {
+                if (userInfo[0].userid === id) {
+                    return res.redirect('/overlap')
+                }
+            }
+            if (userInfo.length || !userInfo.length) {
+                db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
+                    [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
+                        res.redirect('/')
                 })
-        } else if (userInfo[0].userid == id) {
-            return res.redirect('/topic/overlap')
+            }
         }
-
     })
 });
+
+router.get('/privatekeycreate', function (req, res) {
+    let title = 'Create Account'
+    res.render('privatekeycreate', { title });
+})
+
+router.post('/privatekeycreate_process', async function (req, res) {
+    let { id, password, privatekey } = req.body;
+    let accounts = web3.eth.accounts.privateKeyToAccount(privatekey)
+    db.query('SELECT * FROM wallet_info WHERE userid=?', [id], function (err, userInfo) {
+        if (err) throw err;
+        if (userInfo.length || !userInfo.length) {
+            if (userInfo.length) {
+                if (userInfo[0].userid === id) {
+                    return res.redirect('/overlap')
+                }
+            }
+            if (userInfo.length || !userInfo.length){
+                db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
+                [id, password, accounts.address, accounts.privateKey], function (error, result) {
+                    res.redirect('/')
+                })
+            }
+        }
+    })
+})
 
 router.post('/login_process', function (req, res) {
     var { id, password } = req.body;
     db.query(`SELECT * FROM wallet_info WHERE userid =? `, [id], function (err, userInfo) {
         if (err) {
-            return res.redirect('/topic/fail')
+            return res.redirect('/fail')
         }
 
         if (!userInfo.length) {
             // 로그인 실패(id 없음)
-            return res.redirect('/topic/permission')
+            return res.redirect('/permission')
         }
         else {
             if (userInfo[0].password == password) {
@@ -78,71 +96,47 @@ router.post('/login_process', function (req, res) {
                 req.session.userid = userInfo[0].userid;
                 req.session.public_key = userInfo[0].public_key;
                 req.session.private_key = userInfo[0].private_key;
-
                 req.session.save(function () {
-                    return res.redirect("/topic/main")
+                    return res.redirect(`/topic/main`)
                 })
             } else {
                 // 로그인 실패(패스워드 틀림)
-                return res.redirect('/topic/permission')
+                return res.redirect('/permission')
             }
         }
-
     });
-
 });
-
-router.get('/fail', function (req, res) {
-    var html = template.FAIL
-    return res.send(html);
-});
-
-router.get('/permission', function (req, res) {
-    var html = template.PERMISSION
-    return res.send(html);
-});
-router.get('/overlap', function (req, res) {
-    var html = template.OVERLAP
-    return res.send(html);
-});
-
 
 router.get('/main', function (req, res) {
     if (!req.session.is_logined) {
         return res.redirect('/');
     }
-    /*console.log(req.session.password)
-    console.log(req.session.public_key)
-    console.log(req.session.private_key)
-    console.log(req.session.userid)*/
-    
     var userid = req.session.userid;
     var public_key = req.session.public_key;
     console.log(userid)
     console.log(public_key)
+    let title = 'Main'
     db.query(`SELECT * FROM txHash WHERE userid=?`, [userid], async function (err, txInfo) {
         if (err) {
             console.log(err)
         } else {
-                await web3.eth.getBalance(public_key.toString(), function(err, wei) {
-                    balance = web3.utils.fromWei(wei, 'ether')
-                    console.log("balance : ", balance, 'Ether')
-                })
-                if (!txInfo.length) {
-                    TxHashList = '';
+            await web3.eth.getBalance(public_key.toString(), function (err, wei) {
+                balance = web3.utils.fromWei(wei, 'ether')
+            })
+            if (!txInfo.length) {
+                TxHashList = '';
 
-                } else if (txInfo.length > 0) {
-                    var TxHashList = '<table class="table table-hover">';
-                    for (var i = 1; i <= txInfo.length; i++) {
-                        TxHashList += `
-                            <tr>
-                                <td><a href = http://203.236.220.40:3000/tx/${txInfo[txInfo.length - i].txHash} target="_blank">${txInfo[txInfo.length - i].txHash}</a></td>
-                            </tr>
-                            `
-                    }
-                    TxHashList += '</table>'    
+            } else if (txInfo.length > 0) {
+                var TxHashList = '<table class="table table-hover">';
+                for (var i = 1; i <= txInfo.length; i++) {
+                    TxHashList += `
+                        <tr>
+                            <td><a href = http://203.236.220.40:3000/tx/${txInfo[txInfo.length - i].txHash} target="_blank">${txInfo[txInfo.length - i].txHash}</a></td>
+                        </tr>`
                 }
-            return res.render('main', { userid, public_key, balance, TxHashList });
+                TxHashList += '</table>'
+            }
+            return res.render('main', { title, userid, public_key, balance, TxHashList });
         }
     });
 });
@@ -151,8 +145,8 @@ router.get('/send', function (req, res) {
     if (!req.session.is_logined) {
         return res.redirect('/');
     }
-   
-    res.render('send');
+    let title = 'Send'
+    res.render('send',{title});
 });
 
 router.post('/send_process', function (req, res) {
@@ -181,10 +175,8 @@ router.post('/send_process', function (req, res) {
                 db.query('SELECT * FROM txHash', function (err, userInfo) {
                     if (err) throw err;
                     if (userInfo[0] === undefined || userInfo !== undefined) {
-
                         txHash = new Array();
                         txHash = hash;
-                        //console.log(txHash)
                         var userid = req.session.userid;
                         db.query('INSERT INTO txHash(userid, txHash) VALUES(?, ?)', [userid, txHash], function (error, result) {
                             if (error) {
@@ -198,7 +190,6 @@ router.post('/send_process', function (req, res) {
             }
         })
     }
-
     sendTransaction()
 })
 
@@ -208,5 +199,29 @@ router.get('/session_destroy', function (req, res) {
     res.redirect('/');
 })
 
+router.get('/privatekey', function (req, res) {
+    let title = 'Private_key';
+    res.render('privatekey', {title})
+})
+
+router.post('/privatekey_process', function (req, res) {
+    let password = req.body.password;
+    db.query(`SELECT * FROM wallet_info`, async function (err, userInfo) {
+        if (userInfo[0].password === password) {
+            let privateKey = req.session.private_key;
+            res.send(`
+            <div>
+            <div class="form-group" style="width:50%;">
+                <label for="exampleInputEmail1">개인키</label><br>
+                ${privateKey}
+            </div>
+            </div>
+            <button type="button" class="btn btn-outline-dark" onclick="location.href='/topic/main'">메인페이지로 이동</button>
+            `)
+        } else {
+            res.send('error')
+        }
+    })
+})
 
 module.exports = router;

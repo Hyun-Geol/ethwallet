@@ -1,26 +1,27 @@
 <!doctype html>
 <html>
+
 <head>
-    <meta charset="UTF-8">
-    <title>Wallet</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
-    <style>
-    </style>
+    <% include navi/head %>
 </head>
-<body class="container">
-    <form action="/topic/login_process" method="post">
-        <h4 class="display-4">welcome!</h4><br/>
-        <div class = "form-group">
-            <label for="id">id</label>
-            <input type="text" class="form-control" id="id" name ="id" placeholder="id를 입력하세요"><br/>
-            <label for="password">password</label>
-            <input type="password" class="form-control" id="password" name="password" placeholder="password를 입력하세요"><br/>
-        </div>
-        <button type="submit" class="btn btn-outline-info">로그인</button>
-        <button type="button" class="btn btn-outline-dark" onclick="location.href='./topic/create'">계정생성</button>
-    </form>`
+
+<body>
+    <% include navi/header %>
+    <div class="container">
+        <form action="/topic/login_process" method="post">
+            <div class="form-group">
+                <label for="id">id</label>
+                <input type="text" class="form-control" id="id" name="id" placeholder="id를 입력하세요"><br />
+                <label for="password">password</label>
+                <input type="password" class="form-control" id="password" name="password"
+                    placeholder="password를 입력하세요"><br />
+            </div>
+            <button type="submit" class="btn btn-outline-info">로그인</button>
+            <button type="button" class="btn btn-outline-dark" onclick="location.href='./topic/create'">계정생성</button>
+            <button type="button" class="btn btn-outline-dark" onclick="location.href='./topic/privatekeycreate'">개인키로
+                계정생성</button>
+        </form>
+    </div>
 </body>
+
 </html>

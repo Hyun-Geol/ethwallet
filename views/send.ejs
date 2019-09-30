@@ -1,40 +1,35 @@
 <!doctype html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Wallet</title>
-            <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-            <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
-            <script src="http://code.jquery.com/jquery-latest.min.js"></script>
-            <script type="text/javascript" src="/public/js/bootstrap.js"></script>
-        </head>
-        <body class="container">
-           
-            <div class="dropdown">
-                <div
-                    class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Wallet Info</h1>
-                </div>
-        
-                <form action="/topic/send_process" method="post">
-                    <div class="form-group">
-                        <label for="privatekey">To</label>
-                        <input type="text" class="form-control" id="toAddress" name="toAddress"
-                            placeholder="받는 계정"><br />
-        
-                        <label for="privatekey">Gas Price</label>
-                        <input type="text" class="form-control" id="gasPrice" name="gasPrice"
-                            placeholder="가스비"><br />
-        
-                        <label for="privatekey">Value</label>
-                        <input type="text" class="form-control" id="value" name="value"
-                            placeholder="전송량"><br />
-                    </div>
-                    <button type="submit" class="btn btn-outline-dark">전송</button>
-                    <button type="button" class="btn btn-outline-dark" onclick="location.href='/topic/main'">취소</button>
-                </form>
+<html>
+
+<head>
+    <% include navi/head %>
+</head>
+
+<body>
+    <% include navi/header %>
+    <div class="container">
+        <div class="dropdown">
+            <div
+                class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Wallet Info</h1>
             </div>
-        </body>
-        </html>
+
+            <form action="/topic/send_process" method="post">
+                <div class="form-group">
+                    <label for="privatekey">To</label>
+                    <input type="text" class="form-control" id="toAddress" name="toAddress" placeholder="받는 계정"><br />
+
+                    <label for="privatekey">Gas Price</label>
+                    <input type="text" class="form-control" id="gasPrice" name="gasPrice" placeholder="가스비"><br />
+
+                    <label for="privatekey">Value</label>
+                    <input type="text" class="form-control" id="value" name="value" placeholder="전송량"><br />
+                </div>
+                <button type="submit" class="btn btn-outline-info">전송</button>
+                <button type="button" class="btn btn-outline-dark" onclick="location.href='/topic/main'">취소</button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>
