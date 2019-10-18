@@ -7,4 +7,4 @@ const db = mysql.createConnection({
     database: 'wallet'
 });
 
-module.exports =db;
+module.exports = db;

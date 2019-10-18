@@ -9,7 +9,4 @@ app.set('view engine', 'ejs');
 app.use('/', indexRouter);
 app.use('/topic', topicRouter);
 
-let port = 3000;
-app.listen(port, function () {
-    console.log(`${port}port start..`)
-});
+module.exports = app;

@@ -1,14 +1,17 @@
-const express = require('express');
-const Web3 = require('web3');
-const app = express();
-const router = express.Router();
-const Tx = require('ethereumjs-tx').Transaction
-const web3 = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io'));
+let express = require('express');
+let Web3 = require('web3');
+let app = express();
+let router = express.Router();
+let Tx = require('ethereumjs-tx').Transaction
+let web3 = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io'));
 
-const db = require('../public/js/db')
-const bodyParser = require('body-parser');
-const session = require('express-session');
-const mysqlstore = require('express-mysql-session')(session);
+
+let db = require('../public/js/db')
+let bodyParser = require('body-parser');
+let session = require('express-session');
+let mysqlstore = require('express-mysql-session')(session);
+let bcrypt = require('bcrypt-nodejs');
+let CryptoJS = require('crypto-js')
 
 router.use(bodyParser.urlencoded({ extended: false }));
 
@@ -31,9 +34,12 @@ router.get('/create', function (req, res) {
 });
 
 router.post('/create_process', function (req, res) {
-    var { id, password } = req.body;
+    var { id, password } = req.body
     var accountPassword = web3.utils.randomHex(32)
     var newaccounts = web3.eth.accounts.create(accountPassword)
+    password = bcrypt.hashSync(password)
+    let encrypted = CryptoJS.AES.encrypt(newaccounts.privateKey, '123')
+
     db.query('SELECT * FROM wallet_info WHERE userid=?', [id], function (err, userInfo) {
         if (err) throw err;
         if (userInfo.length || !userInfo.length) {
@@ -43,9 +49,10 @@ router.post('/create_process', function (req, res) {
                 }
             }
             if (userInfo.length || !userInfo.length) {
-                db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
-                    [id, password, newaccounts.address, newaccounts.privateKey], function (error, result) {
-                        res.redirect('/')
+                //let privateKey = bcrypt.hashSync(newaccounts.privateKey)
+                let sql = { userid: id, password: password, public_key: newaccounts.address, private_key: encrypted.toString() }
+                db.query(`INSERT INTO wallet_info set ? `, sql, function (err, result) {
+                    res.redirect('/')
                 })
             }
         }
@@ -60,6 +67,7 @@ router.get('/privatekeycreate', function (req, res) {
 router.post('/privatekeycreate_process', async function (req, res) {
     let { id, password, privatekey } = req.body;
     let accounts = web3.eth.accounts.privateKeyToAccount(privatekey)
+    let encrypted = CryptoJS.AES.encrypt(privatekey, '123')
     db.query('SELECT * FROM wallet_info WHERE userid=?', [id], function (err, userInfo) {
         if (err) throw err;
         if (userInfo.length || !userInfo.length) {
@@ -68,9 +76,10 @@ router.post('/privatekeycreate_process', async function (req, res) {
                     return res.redirect('/overlap')
                 }
             }
-            if (userInfo.length || !userInfo.length){
-                db.query(`INSERT INTO wallet_info(userid, password, public_key, private_key) VALUES(?, ?, ?, ?)`,
-                [id, password, accounts.address, accounts.privateKey], function (error, result) {
+            if (userInfo.length || !userInfo.length) {
+                password = bcrypt.hashSync(password)
+                let sql = { userid: id, password: password, public_key: accounts.address, private_key: encrypted }
+                db.query(`INSERT INTO wallet_info set ?`, sql, function (err, result) {
                     res.redirect('/')
                 })
             }
@@ -90,19 +99,22 @@ router.post('/login_process', function (req, res) {
             return res.redirect('/permission')
         }
         else {
-            if (userInfo[0].password == password) {
-                req.session.is_logined = true;
-                req.session.password = userInfo[0].password;
-                req.session.userid = userInfo[0].userid;
-                req.session.public_key = userInfo[0].public_key;
-                req.session.private_key = userInfo[0].private_key;
-                req.session.save(function () {
-                    return res.redirect(`/topic/main`)
-                })
-            } else {
-                // 로그인 실패(패스워드 틀림)
-                return res.redirect('/permission')
-            }
+            bcrypt.compare(password, userInfo[0].password, function (err, rf) {
+                if (rf === true) {
+                    req.session.is_logined = true;
+                    req.session.password = userInfo[0].password;
+                    req.session.userid = userInfo[0].userid;
+                    req.session.public_key = userInfo[0].public_key;
+                    req.session.private_key = userInfo[0].private_key;
+                    req.session.save(function () {
+                        return res.redirect(`/topic/main`)
+                    })
+                } else {
+                    req.session.is_logined = false;
+                    // 로그인 실패(패스워드 틀림)
+                    return res.redirect('/permission')
+                }
+            })
         }
     });
 });
@@ -146,7 +158,7 @@ router.get('/send', function (req, res) {
         return res.redirect('/');
     }
     let title = 'Send'
-    res.render('send',{title});
+    res.render('send', { title });
 });
 
 router.post('/send_process', function (req, res) {
@@ -155,6 +167,9 @@ router.post('/send_process', function (req, res) {
     sendTransaction = async () => {
         let { toAddress, gasPrice, value } = req.body;
         var nonce = await web3.eth.getTransactionCount(req.session.public_key, "pending") //await
+        let decrypted = CryptoJS.AES.decrypt(req.session.private_key, '123')
+        decrypted = decrypted.toString(CryptoJS.enc.Utf8).substring(2,)
+        let privateKey = new Buffer.from(decrypted, 'hex')
         const rawTx = {
             nonce: nonce,
             gasLimit: web3.utils.toHex(gasLimit),
@@ -162,9 +177,8 @@ router.post('/send_process', function (req, res) {
             from: req.session.public_key,
             to: toAddress,
             value: web3.utils.toHex(web3.utils.toWei(value, 'ether')),
-            data: '',
+            data: ''
         }
-        let privateKey = new Buffer.from(req.session.private_key.substring(2, 66), 'hex')
         let tx = new Tx(rawTx, { chain: 'ropsten' });
         tx.sign(privateKey)
         let serializedTx = tx.serialize();
@@ -201,27 +215,35 @@ router.get('/session_destroy', function (req, res) {
 
 router.get('/privatekey', function (req, res) {
     let title = 'Private_key';
-    res.render('privatekey', {title})
+    res.render('privatekey', { title })
 })
 
 router.post('/privatekey_process', function (req, res) {
-    let password = req.body.password;
-    db.query(`SELECT * FROM wallet_info`, async function (err, userInfo) {
-        if (userInfo[0].password === password) {
-            let privateKey = req.session.private_key;
-            res.send(`
-            <div>
-            <div class="form-group" style="width:50%;">
-                <label for="exampleInputEmail1">개인키</label><br>
-                ${privateKey}
-            </div>
-            </div>
-            <button type="button" class="btn btn-outline-dark" onclick="location.href='/topic/main'">메인페이지로 이동</button>
-            `)
-        } else {
-            res.send('error')
-        }
-    })
+    async function privateKeyToAccount() {
+        let { password } = req.body;
+        let id = req.session.userid;
+        db.query(`SELECT * FROM wallet_info where userid =?`, [id], function (err, userInfo) {
+            bcrypt.compare(password, userInfo[0].password, function (err, tf) {
+                if (err || tf == false) {
+                    return res.redirect('/permission')
+                }
+                else if (tf === true) {
+                    let decrypted = CryptoJS.AES.decrypt(req.session.private_key, '123')
+                    let privateKey = decrypted.toString(CryptoJS.enc.Utf8);
+                    res.send(`
+                    <div>
+                    <div class="form-group" style="width:50%;">
+                    <label for="exampleInputEmail1">개인키</label><br>
+                    ${privateKey}
+                    </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-dark" onclick="location.href='/topic/main'">메인페이지로 이동</button>
+                    `)
+                }
+            })
+        })
+    }
+    privateKeyToAccount();
 })
 
 module.exports = router;
