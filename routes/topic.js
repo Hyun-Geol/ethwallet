@@ -1,17 +1,15 @@
 let express = require('express');
 let Web3 = require('web3');
-let app = express();
 let router = express.Router();
 let Tx = require('ethereumjs-tx').Transaction
-let web3 = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io'));
-
+let web3 = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io/v3/25c7c08910c04b0c9be79c09f559652e'));
 
 let db = require('../public/js/db')
 let bodyParser = require('body-parser');
 let session = require('express-session');
 let mysqlstore = require('express-mysql-session')(session);
 let bcrypt = require('bcrypt-nodejs');
-let CryptoJS = require('crypto-js')
+let CryptoJS = require('crypto-js');
 
 router.use(bodyParser.urlencoded({ extended: false }));
 
@@ -28,11 +26,13 @@ router.use(session({
     })
 }))
 
+// 계정생성 페이지 이동
 router.get('/create', function (req, res) {
     let title = 'Create Account'
     return res.render('create', { title });
 });
 
+// 계정생성 버튼 클릭시 계정생성하는 부분
 router.post('/create_process', function (req, res) {
     var { id, password } = req.body
     var accountPassword = web3.utils.randomHex(32)
@@ -45,11 +45,10 @@ router.post('/create_process', function (req, res) {
         if (userInfo.length || !userInfo.length) {
             if (userInfo.length) {
                 if (userInfo[0].userid === id) {
-                    return res.redirect('/overlap')
+                    return res.redirect('/fail')
                 }
             }
             if (userInfo.length || !userInfo.length) {
-                //let privateKey = bcrypt.hashSync(newaccounts.privateKey)
                 let sql = { userid: id, password: password, public_key: newaccounts.address, private_key: encrypted.toString() }
                 db.query(`INSERT INTO wallet_info set ? `, sql, function (err, result) {
                     res.redirect('/')
@@ -59,11 +58,13 @@ router.post('/create_process', function (req, res) {
     })
 });
 
+// 프라이빗키로 계정생성 페이지
 router.get('/privatekeycreate', function (req, res) {
     let title = 'Create Account'
     res.render('privatekeycreate', { title });
 })
 
+// 프라이빗키로 계정생성 하는 부분
 router.post('/privatekeycreate_process', async function (req, res) {
     let { id, password, privatekey } = req.body;
     let accounts = web3.eth.accounts.privateKeyToAccount(privatekey)
@@ -73,7 +74,7 @@ router.post('/privatekeycreate_process', async function (req, res) {
         if (userInfo.length || !userInfo.length) {
             if (userInfo.length) {
                 if (userInfo[0].userid === id) {
-                    return res.redirect('/overlap')
+                    return res.redirect('/fail')
                 }
             }
             if (userInfo.length || !userInfo.length) {
@@ -87,6 +88,7 @@ router.post('/privatekeycreate_process', async function (req, res) {
     })
 })
 
+// 로그인 처리 부분
 router.post('/login_process', function (req, res) {
     var { id, password } = req.body;
     db.query(`SELECT * FROM wallet_info WHERE userid =? `, [id], function (err, userInfo) {
@@ -119,6 +121,8 @@ router.post('/login_process', function (req, res) {
     });
 });
 
+
+// 메인페이지
 router.get('/main', function (req, res) {
     if (!req.session.is_logined) {
         return res.redirect('/');
@@ -153,6 +157,7 @@ router.get('/main', function (req, res) {
     });
 });
 
+// 이더 전송페이지
 router.get('/send', function (req, res) {
     if (!req.session.is_logined) {
         return res.redirect('/');
@@ -161,6 +166,7 @@ router.get('/send', function (req, res) {
     res.render('send', { title });
 });
 
+// 이더 전송하는 부분
 router.post('/send_process', function (req, res) {
     const gasLimit = 21000
     const gWei = 9
@@ -207,17 +213,13 @@ router.post('/send_process', function (req, res) {
     sendTransaction()
 })
 
-router.get('/session_destroy', function (req, res) {
-    req.session.destroy();  // 세션 삭제
-    res.clearCookie('sid'); // 세션 쿠키 삭제
-    res.redirect('/');
-})
-
+// 프라이빗키 가져오기 페이지
 router.get('/privatekey', function (req, res) {
     let title = 'Private_key';
     res.render('privatekey', { title })
 })
 
+// 비밀번호로 로그인했을때 비밀번호가 일치하면 프라이빗키를 알려줌.
 router.post('/privatekey_process', function (req, res) {
     async function privateKeyToAccount() {
         let { password } = req.body;
@@ -245,5 +247,12 @@ router.post('/privatekey_process', function (req, res) {
     }
     privateKeyToAccount();
 })
+
+router.get('/session_destroy', function (req, res) {
+    req.session.destroy();  // 세션 삭제
+    res.clearCookie('sid'); // 세션 쿠키 삭제
+    res.redirect('/');
+})
+
 
 module.exports = router;
