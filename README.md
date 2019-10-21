@@ -12,14 +12,14 @@ $ npm start
 ```
 
 2. ##### 시작 페이지(로그인)
-    ![loginpage](./screenshot/loginpage.png)
+    ![loginpage](./screenshot/loginpage.PNG)
 
 3. ##### 회원가입 페이지
     (1) 계정생성
-    ![createAccount](./screenshot/createAccount.png)
+    ![createAccount](./screenshot/createAccount.PNG)
 
     (2) PrivateKey로 계정생성
-    ![createAccountForPrivateKey](./screenshot/createAccountForPrivatekey.png)
+    ![createAccountForPrivateKey](./screenshot/createAccountForPrivatekey.PNG)
 
 4. ##### 메인 페이지
     ![mainpage](./screenshot/mainpage.png)
@@ -28,15 +28,15 @@ $ npm start
     ![sendpage](./screenshot/sendpage.png)
 
 6. ##### 프라이빗키 가져오기
-    ![getPrivateKey](./screenshot/getPrivateKey.png)
+    ![getPrivateKey](./screenshot/getPrivateKey.PNG)
 
 7. ##### 에러 페이지
 
     (1) 로그인 실패시
-    ![permission](./screenshot/permission.png)
+    ![permission](./screenshot/permission.PNG)
 
     (2) 아이디 중복시
-    ![overlap](./screenshot/overlap.png)
+    ![overlap](./screenshot/overlap.PNG)
 
     (3) 로그인 에러시
     ![fail](./screenshot/fail.png)
