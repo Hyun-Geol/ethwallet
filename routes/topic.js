@@ -45,7 +45,7 @@ router.post('/create_process', function (req, res) {
         if (userInfo.length || !userInfo.length) {
             if (userInfo.length) {
                 if (userInfo[0].userid === id) {
-                    return res.redirect('/fail')
+                    return res.redirect('/overlap')
                 }
             }
             if (userInfo.length || !userInfo.length) {
@@ -74,7 +74,7 @@ router.post('/privatekeycreate_process', async function (req, res) {
         if (userInfo.length || !userInfo.length) {
             if (userInfo.length) {
                 if (userInfo[0].userid === id) {
-                    return res.redirect('/fail')
+                    return res.redirect('/overlap')
                 }
             }
             if (userInfo.length || !userInfo.length) {
