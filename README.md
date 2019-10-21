@@ -30,12 +30,3 @@ $ npm start
 6. 에러 페이지
 
     ![errpage](./screenshot/errpage.png)
-    
-    
-### 참고 문서
-[Web3](https://web3js.readthedocs.io)
-
-### 암호화
-1. password는 bcrypt를 사용.(로그인시 복호화 결과가 true면 로그인, false면 에러페이지)
-2. privatekey는 crypto로 암호화 한 뒤에 메인페이지에서 개인키 가져오기누르고 
-비밀번호 입력해서 true면 privatekey를 반환해줌.
