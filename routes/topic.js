@@ -37,8 +37,8 @@ router.post('/create_process', function (req, res) {
     var { id, password } = req.body
     var accountPassword = web3.utils.randomHex(32)
     var newaccounts = web3.eth.accounts.create(accountPassword)
-    let encrypted = CryptoJS.AES.encrypt(newaccounts.privateKey, password)
     password = bcrypt.hashSync(password)
+    let encrypted = CryptoJS.AES.encrypt(newaccounts.privateKey, password)
 
     db.query('SELECT * FROM wallet_info WHERE userid=?', [id], function (err, userInfo) {
         if (err) throw err;
@@ -68,6 +68,7 @@ router.get('/privatekeycreate', function (req, res) {
 router.post('/privatekeycreate_process', async function (req, res) {
     let { id, password, privatekey } = req.body;
     let accounts = web3.eth.accounts.privateKeyToAccount(privatekey)
+    password = bcrypt.hashSync(password)
     let encrypted = CryptoJS.AES.encrypt(privatekey, password)
     db.query('SELECT * FROM wallet_info WHERE userid=?', [id], function (err, userInfo) {
         if (err) throw err;
@@ -78,7 +79,6 @@ router.post('/privatekeycreate_process', async function (req, res) {
                 }
             }
             if (userInfo.length || !userInfo.length) {
-                password = bcrypt.hashSync(password)
                 let sql = { userid: id, password: password, public_key: accounts.address, private_key: encrypted }
                 db.query(`INSERT INTO wallet_info set ?`, sql, function (err, result) {
                     res.redirect('/')
@@ -173,7 +173,7 @@ router.post('/send_process', function (req, res) {
     sendTransaction = async () => {
         let { toAddress, gasPrice, value } = req.body;
         var nonce = await web3.eth.getTransactionCount(req.session.public_key, "pending") //await
-        let decrypted = CryptoJS.AES.decrypt(req.session.private_key, password)
+        let decrypted = CryptoJS.AES.decrypt(req.session.private_key, req.session.password)
         decrypted = decrypted.toString(CryptoJS.enc.Utf8).substring(2,)
         let privateKey = new Buffer.from(decrypted, 'hex')
         const rawTx = {
@@ -230,7 +230,7 @@ router.post('/privatekey_process', function (req, res) {
                     return res.redirect('/permission')
                 }
                 else if (tf === true) {
-                    let decrypted = CryptoJS.AES.decrypt(req.session.private_key, password)
+                    let decrypted = CryptoJS.AES.decrypt(req.session.private_key, req.session.password)
                     let privateKey = decrypted.toString(CryptoJS.enc.Utf8);
                     res.send(`
                     <div>
